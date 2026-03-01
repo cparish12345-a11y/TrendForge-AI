@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'  // from earlier
+import { supabase } from '@/lib/supabase'  // from earlier steps
 
 export default function Home() {
   const [session, setSession] = useState(null)
@@ -13,6 +13,7 @@ export default function Home() {
   const [niche, setNiche] = useState('Thirsty OnlyFans Clout')
   const [log, setLog] = useState([])
 
+  // Load session on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -25,12 +26,28 @@ export default function Home() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  const signUpOrLogin = async () => {
+  // Sign up or login
+  const handleAuth = async () => {
+    if (!email || !password) return alert('Enter email and password')
+
     const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) alert(error.message)
-    else {
-      alert('Signed in / account created!')
+
+    if (error) {
+      // If user already exists, try to log in instead
+      if (error.message.includes('already registered')) {
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (loginError) return alert(loginError.message)
+        setSession(loginData.session)
+        alert('Logged in!')
+      } else {
+        alert(error.message)
+      }
+    } else {
       setSession(data.session)
+      alert('Account created & logged in!')
     }
   }
 
@@ -58,64 +75,66 @@ export default function Home() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-8 font-mono">
-        <div className="bg-gray-900 p-12 rounded-2xl border-4 border-green-600 w-full max-w-md">
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 font-mono">
+        <div className="bg-gray-900 p-10 rounded-2xl border-4 border-green-600 w-full max-w-md">
           <h1 className="text-5xl font-black text-pink-500 text-center mb-8">TREND FORGE AI</h1>
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full p-4 mb-4 bg-gray-800 border-2 border-green-500 rounded-xl text-white"
+            className="w-full p-4 mb-4 bg-gray-800 border-2 border-green-500 rounded-xl text-white text-lg"
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="w-full p-4 mb-6 bg-gray-800 border-2 border-green-500 rounded-xl text-white"
+            className="w-full p-4 mb-6 bg-gray-800 border-2 border-green-500 rounded-xl text-white text-lg"
           />
           <button 
-            onClick={signUpOrLogin}
+            onClick={handleAuth}
             className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-6 text-3xl rounded-2xl"
           >
             SIGN UP / LOGIN
           </button>
-          <p className="text-center text-gray-500 mt-4">Use any email/password (test mode)</p>
+          <p className="text-center text-gray-500 mt-6 text-lg">
+            Use any email + password (test mode — no verification needed)
+          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-8 font-mono">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-6xl font-black text-pink-500">TREND FORGE AI</h1>
+    <div className="min-h-screen bg-black text-green-400 p-6 md:p-10 font-mono">
+      <div className="flex justify-between items-center mb-10">
+        <h1 className="text-5xl md:text-6xl font-black text-pink-500">TREND FORGE AI</h1>
         <button 
           onClick={signOut}
-          className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl"
+          className="bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-8 rounded-xl text-xl"
         >
           Logout
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600 text-center">
-          <h2 className="text-3xl mb-2">Balance</h2>
-          <p className="text-5xl font-bold">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="bg-gray-900 p-6 rounded-xl border-4 border-green-600 text-center">
+          <h2 className="text-2xl mb-2">Balance</h2>
+          <p className="text-4xl font-bold">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600 text-center">
-          <h2 className="text-3xl mb-2">Followers</h2>
-          <p className="text-5xl font-bold">{(followers / 1000000).toFixed(1)}M</p>
+        <div className="bg-gray-900 p-6 rounded-xl border-4 border-green-600 text-center">
+          <h2 className="text-2xl mb-2">Followers</h2>
+          <p className="text-4xl font-bold">{(followers / 1000000).toFixed(1)}M</p>
         </div>
-        <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600 text-center">
-          <h2 className="text-3xl mb-2">Live Forgers</h2>
-          <p className="text-5xl text-red-500 animate-pulse">~18,420</p>
+        <div className="bg-gray-900 p-6 rounded-xl border-4 border-green-600 text-center">
+          <h2 className="text-2xl mb-2">Live Forgers</h2>
+          <p className="text-4xl text-red-500 animate-pulse">~18,420</p>
         </div>
       </div>
 
-      <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600 mb-10">
-        <h2 className="text-4xl mb-4">Pick Niche</h2>
+      <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mb-8">
+        <h2 className="text-3xl mb-4">Pick Niche</h2>
         <select 
           value={niche} 
           onChange={e => setNiche(e.target.value)}
@@ -130,29 +149,31 @@ export default function Home() {
 
       <button 
         onClick={forgeContent}
-        className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-10 text-5xl rounded-2xl mb-12"
+        className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-10 text-5xl rounded-2xl mb-8"
       >
         FORGE VIRAL CONTENT NOW
       </button>
 
       {generated && (
-        <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600 mb-12 whitespace-pre-wrap text-2xl leading-relaxed">
+        <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mb-8 whitespace-pre-wrap text-2xl leading-relaxed">
           {generated}
         </div>
       )}
 
-      <div className="bg-gray-900 p-8 rounded-2xl border-4 border-green-600">
-        <h2 className="text-4xl mb-4">Live Log</h2>
+      <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600">
+        <h2 className="text-3xl mb-4">Live Log</h2>
         {log.length === 0 ? (
           <p className="text-gray-500 text-xl">Hit the button to start forging...</p>
         ) : (
           log.map((entry, i) => (
-            <p key={i} className="text-red-400 mb-2 text-xl">{entry}</p>
+            <p key={i} className="text-red-400 mb-2 text-xl border-b border-gray-700 pb-2">{entry}</p>
           ))
         )}
       </div>
 
-      <p className="text-center text-xl mt-8">Logged in as {session.user.email}</p>
+      <p className="text-center text-xl mt-8 text-green-300">
+        Logged in as {session.user.email}
+      </p>
     </div>
   )
 }

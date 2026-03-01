@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'  // from earlier steps
 
 export default function Home() {
-  const [session, setSession] = useState(null)
+  import { Session } from '@supabase/supabase-js'   // ← Add this import at the top if not already there
+
+// ... inside the Home function:
+const [session, setSession] = useState<Session | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [balance, setBalance] = useState(247893.42)
@@ -15,16 +18,21 @@ export default function Home() {
 
   // Load session on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
+  // Initial session load
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setSession(session ?? null)  // explicitly handle null
+  })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
+  // Listen for auth changes
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session ?? null)
+  })
 
-    return () => listener.subscription.unsubscribe()
-  }, [])
+  // Cleanup
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
 
   // Sign up or login
   const handleAuth = async () => {

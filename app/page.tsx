@@ -152,8 +152,17 @@ export default function Home() {
         className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-10 text-5xl rounded-2xl mb-8"
       >
         FORGE VIRAL CONTENT NOW
-      </button>
-
+      <button 
+  onClick={async () => {
+    const res = await fetch('/api/create-checkout', { method: 'POST' })
+    const { url } = await res.json()
+    if (url) window.location.href = url
+    else alert('Payment setup error')
+  }}
+  className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-8 text-4xl rounded-2xl mt-6 shadow-lg"
+>
+  UPGRADE TO GOD MODE — $9.99/mo
+</button>
       {generated && (
         <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mb-8 whitespace-pre-wrap text-2xl leading-relaxed">
           {generated}

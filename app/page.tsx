@@ -1,59 +1,56 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'  // from earlier steps
+import { supabase } from '@/lib/supabase'
+import { Session } from '@supabase/supabase-js'
 
 export default function Home() {
-  import { Session } from '@supabase/supabase-js'   // ← Add this import at the top if not already there
-
-// ... inside the Home function:
-const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [balance, setBalance] = useState(247893.42)
   const [followers, setFollowers] = useState(2400000)
   const [generated, setGenerated] = useState('')
   const [niche, setNiche] = useState('Thirsty OnlyFans Clout')
-  const [log, setLog] = useState([])
+  const [log, setLog] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // Load session on mount
+  // Load session
   useEffect(() => {
-  // Initial session load
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    setSession(session ?? null)  // explicitly handle null
-  })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session ?? null)
+    })
 
-  // Listen for auth changes
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    setSession(session ?? null)
-  })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session ?? null)
+    })
 
-  // Cleanup
-  return () => {
-    subscription.unsubscribe()
-  }
-}, [])
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Sign up or login
   const handleAuth = async () => {
     if (!email || !password) return alert('Enter email and password')
 
+    setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
-      // If user already exists, try to log in instead
       if (error.message.includes('already registered')) {
         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
+        setLoading(false)
         if (loginError) return alert(loginError.message)
         setSession(loginData.session)
         alert('Logged in!')
       } else {
+        setLoading(false)
         alert(error.message)
       }
     } else {
+      setLoading(false)
       setSession(data.session)
       alert('Account created & logged in!')
     }
@@ -64,21 +61,43 @@ const [session, setSession] = useState<Session | null>(null)
     setSession(null)
   }
 
-  const forgeContent = () => {
+  // Real AI generation
+  const forgeContent = async () => {
     if (!session) return alert('Sign in first!')
 
-    const bangers = [
-      `POV: Your ${niche} post just made $12k in tips while you slept.`,
-      `TrendForge AI just turned your ${niche} account into a cash printer.`
-    ]
-    const random = bangers[Math.floor(Math.random() * bangers.length)]
+    setLoading(true)
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche }),
+      })
 
-    setGenerated(`🔥 ${niche.toUpperCase()} BANGER 🔥\n\n${random}\n\n#TrendForgeAI #PortlandRich`)
+      if (!res.ok) throw new Error('AI request failed')
 
-    setBalance(prev => prev + 1247.69 + Math.random() * 2000)
-    setFollowers(prev => prev + 87342 + Math.floor(Math.random() * 70000))
+      const { text } = await res.json()
 
-    setLog(prev => [`${new Date().toLocaleTimeString()} — Forged viral content (3.8M views projected)`, ...prev.slice(0, 8)])
+      setGenerated(`🔥 ${niche.toUpperCase()} BANGER 🔥\n\n${text}\n\n#TrendForgeAI #ViralOrDie #PortlandHustle #GetRich`)
+
+      setBalance(prev => prev + 1247.69 + Math.random() * 2000)
+      setFollowers(prev => prev + 87342 + Math.floor(Math.random() * 70000))
+
+      setLog(prev => [`${new Date().toLocaleTimeString()} — Real AI forged (5M+ views projected)`, ...prev.slice(0, 8)])
+    } catch (err) {
+      console.error(err)
+      alert('AI generation failed – try again')
+    }
+    setLoading(false)
+  }
+
+  // Copy & share
+  const handleShare = () => {
+    const shareText = generated
+      ? `${generated}\n\nMade with TrendForge AI → ${window.location.href}`
+      : 'Check out TrendForge AI – forge viral content in seconds! https://trendforge-esky8xubd-cparish12345-a11ys-projects.vercel.app/'
+
+    navigator.clipboard.writeText(shareText)
+    alert('Copied to clipboard! Paste to X, TikTok, or Instagram')
   }
 
   if (!session) {
@@ -102,12 +121,13 @@ const [session, setSession] = useState<Session | null>(null)
           />
           <button 
             onClick={handleAuth}
-            className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-6 text-3xl rounded-2xl"
+            disabled={loading}
+            className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-6 text-3xl rounded-2xl disabled:opacity-50"
           >
-            SIGN UP / LOGIN
+            {loading ? 'Loading...' : 'SIGN UP / LOGIN'}
           </button>
           <p className="text-center text-gray-500 mt-6 text-lg">
-            Use any email + password (test mode — no verification needed)
+            Use any email + password (test mode — no verification)
           </p>
         </div>
       </div>
@@ -157,27 +177,39 @@ const [session, setSession] = useState<Session | null>(null)
 
       <button 
         onClick={forgeContent}
-        className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-10 text-5xl rounded-2xl mb-8"
+        disabled={loading}
+        className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-10 text-5xl rounded-2xl mb-6 disabled:opacity-50"
       >
-        FORGE VIRAL CONTENT NOW
-      <button 
-  onClick={async () => {
-    const res = await fetch('/api/create-checkout', { method: 'POST' })
-    const { url } = await res.json()
-    if (url) window.location.href = url
-    else alert('Payment setup error')
-  }}
-  className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-8 text-4xl rounded-2xl mt-6 shadow-lg"
->
-  UPGRADE TO GOD MODE — $9.99/mo
-</button>
+        {loading ? 'Forging...' : 'FORGE VIRAL CONTENT NOW'}
+      </button>
+
       {generated && (
-        <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mb-8 whitespace-pre-wrap text-2xl leading-relaxed">
+        <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mb-6 whitespace-pre-wrap text-2xl leading-relaxed">
           {generated}
+          <div className="mt-6 text-center">
+            <button 
+              onClick={handleShare}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white font-black py-5 px-10 rounded-2xl text-3xl"
+            >
+              COPY & SHARE THIS BANGER
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600">
+      <button 
+        onClick={async () => {
+          const res = await fetch('/api/create-checkout', { method: 'POST' })
+          const { url } = await res.json()
+          if (url) window.location.href = url
+          else alert('Payment setup error – check console')
+        }}
+        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-8 text-4xl rounded-2xl shadow-lg"
+      >
+        UPGRADE TO GOD MODE — $9.99/mo
+      </button>
+
+      <div className="bg-gray-900 p-8 rounded-xl border-4 border-green-600 mt-8">
         <h2 className="text-3xl mb-4">Live Log</h2>
         {log.length === 0 ? (
           <p className="text-gray-500 text-xl">Hit the button to start forging...</p>

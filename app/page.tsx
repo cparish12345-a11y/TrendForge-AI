@@ -15,7 +15,6 @@ export default function Home() {
   const [log, setLog] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Load session
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session ?? null)
@@ -28,7 +27,6 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Sign up or login
   const handleAuth = async () => {
     if (!email || !password) return alert('Enter email and password')
 
@@ -61,7 +59,6 @@ export default function Home() {
     setSession(null)
   }
 
-  // Real AI generation
   const forgeContent = async () => {
     if (!session) return alert('Sign in first!')
 
@@ -90,14 +87,13 @@ export default function Home() {
     setLoading(false)
   }
 
-  // Copy & share
   const handleShare = () => {
     const shareText = generated
       ? `${generated}\n\nMade with TrendForge AI → ${window.location.href}`
       : 'Check out TrendForge AI – forge viral content in seconds! https://trendforge-esky8xubd-cparish12345-a11ys-projects.vercel.app/'
 
     navigator.clipboard.writeText(shareText)
-    alert('Copied to clipboard! Paste to X, TikTok, or Instagram')
+    alert('Copied! Paste to X, TikTok, or Instagram')
   }
 
   if (!session) {

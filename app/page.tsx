@@ -195,10 +195,14 @@ export default function Home() {
 
       <button 
         onClick={async () => {
-          const res = await fetch('/api/create-checkout', { method: 'POST' })
-          const { url } = await res.json()
-          if (url) window.location.href = url
-          else alert('Payment setup error – check console')
+          try {
+            const res = await fetch('/api/create-checkout', { method: 'POST' })
+            const { url } = await res.json()
+            if (url) window.location.href = url
+            else alert('Payment setup error – check console')
+          } catch (err) {
+            alert('Payment error – check console')
+          }
         }}
         className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-8 text-4xl rounded-2xl shadow-lg"
       >
